@@ -2,6 +2,8 @@
 
 namespace ShiftOneLabs\LaravelSqsFifoQueue\Bus;
 
+use Ramsey\Uuid\Uuid;
+
 trait SqsFifoQueueable
 {
     /**
@@ -27,7 +29,7 @@ trait SqsFifoQueueable
      */
     public function onMessageGroup($messageGroupId)
     {
-        $this->messageGroupId = $messageGroupId;
+        $this->messageGroupId = Uuid::uuid4()->toString();
 
         return $this;
     }

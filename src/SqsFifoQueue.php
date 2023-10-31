@@ -2,6 +2,7 @@
 
 namespace ShiftOneLabs\LaravelSqsFifoQueue;
 
+use Ramsey\Uuid\Uuid;
 use Aws\Sqs\SqsClient;
 use BadMethodCallException;
 use Illuminate\Support\Arr;
@@ -106,6 +107,10 @@ class SqsFifoQueue extends SqsQueue
             $message['MessageDeduplicationId'] = $deduplication;
         }
 
+        if (($group = $this->getGroupId($payload, $queue)) !== false) {
+            $message['MessageGroupId'] = $group;
+        }
+
         $response = $this->sqs->sendMessage($message);
 
         return $response->get('MessageId');
@@ -165,6 +170,21 @@ class SqsFifoQueue extends SqsQueue
         }
 
         throw new InvalidArgumentException(sprintf('Unsupported deduplication method [%s].', $driver));
+    }
+
+    /**
+     * Get the group id.
+     *
+     * @param  string  $payload
+     * @param  string  $queue
+     *
+     * @return string|bool
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function getGroupId($payload, $queue)
+    {
+        return Uuid::uuid4()->toString();
     }
 
     /**
