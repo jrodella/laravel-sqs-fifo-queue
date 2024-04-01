@@ -6,6 +6,7 @@ use Ramsey\Uuid\Uuid;
 use Aws\Sqs\SqsClient;
 use BadMethodCallException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Illuminate\Queue\SqsQueue;
 use Illuminate\Mail\SendQueuedMailable;
@@ -99,21 +100,30 @@ class SqsFifoQueue extends SqsQueue
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        $message = [
-            'QueueUrl' => $this->getQueue($queue), 'MessageBody' => $payload, 'MessageGroupId' => $this->getMeta($payload, 'group', $this->group),
-        ];
-
-        if (($deduplication = $this->getDeduplicationId($payload, $queue)) !== false) {
-            $message['MessageDeduplicationId'] = $deduplication;
+        try {
+            if (!Str::endsWith($queue, '.fifo')) {
+                throw new InvalidArgumentException('FIFO queue name must end in ".fifo"');
+            }
+    
+            $message = [
+                'QueueUrl' => $this->getQueue($queue), 'MessageBody' => $payload, 'MessageGroupId' => $this->getMeta($payload, 'group', $this->group),
+            ];
+    
+            if (($deduplication = $this->getDeduplicationId($payload, $queue)) !== false) {
+                $message['MessageDeduplicationId'] = $deduplication;
+            }
+    
+            if (($group = $this->getGroupId($payload, $queue)) !== false) {
+                $message['MessageGroupId'] = $group;
+            }
+    
+            $response = $this->sqs->sendMessage($message);
+    
+            return $response->get('MessageId');
+        } catch (\Exception $e) {
+            // do nothing
+            return false;
         }
-
-        if (($group = $this->getGroupId($payload, $queue)) !== false) {
-            $message['MessageGroupId'] = $group;
-        }
-
-        $response = $this->sqs->sendMessage($message);
-
-        return $response->get('MessageId');
     }
 
     /**
