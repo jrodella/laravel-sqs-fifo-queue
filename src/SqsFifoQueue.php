@@ -120,9 +120,11 @@ class SqsFifoQueue extends SqsQueue
             $response = $this->sqs->sendMessage($message);
     
             return $response->get('MessageId');
-        } catch (\Exception $e) {
+        } catch (InvalidArgumentException $e) {
             // do nothing
             return false;
+        } catch (\Exception $e) {
+            throw $e;
         }
     }
 
