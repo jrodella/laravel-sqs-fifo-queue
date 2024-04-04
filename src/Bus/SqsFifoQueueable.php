@@ -29,7 +29,7 @@ trait SqsFifoQueueable
      */
     public function onMessageGroup($messageGroupId)
     {
-        $this->messageGroupId = Uuid::uuid4()->toString();
+        $this->messageGroupId = (string) $messageGroupId ?? Uuid::uuid4()->toString();
 
         return $this;
     }

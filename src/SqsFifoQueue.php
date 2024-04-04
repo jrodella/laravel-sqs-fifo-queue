@@ -101,10 +101,6 @@ class SqsFifoQueue extends SqsQueue
     public function pushRaw($payload, $queue = null, array $options = [])
     {
         try {
-            if (!Str::endsWith($queue, '.fifo')) {
-                throw new InvalidArgumentException('FIFO queue name must end in ".fifo"');
-            }
-    
             $message = [
                 'QueueUrl' => $this->getQueue($queue), 'MessageBody' => $payload, 'MessageGroupId' => $this->getMeta($payload, 'group', $this->group),
             ];
@@ -165,6 +161,11 @@ class SqsFifoQueue extends SqsQueue
      */
     protected function getDeduplicationId($payload, $queue)
     {
+        if (!Str::endsWith($queue, '.fifo')) {
+            // not fifo queues does not need deduplication id
+            return false;
+        }
+
         $driver = $this->getMeta($payload, 'deduplicator', $this->deduplicator);
 
         if (empty($driver)) {
@@ -196,7 +197,13 @@ class SqsFifoQueue extends SqsQueue
      */
     protected function getGroupId($payload, $queue)
     {
-        return Uuid::uuid4()->toString();
+        if (!Str::endsWith($queue, '.fifo')) {
+            // not fifo queues does not need deduplication id
+            return false;
+        }
+        $group = $this->getMeta($payload, 'group',  Uuid::uuid4()->toString());
+
+        return $group;
     }
 
     /**
